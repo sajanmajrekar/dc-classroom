@@ -1,5 +1,5 @@
 <?php
-$allowedOrigins = array_filter(array_map('trim', explode(',', getenv('ALLOWED_ORIGINS') ?: 'http://localhost:5173,http://127.0.0.1:5173')));
+$allowedOrigins = array_filter(array_map('trim', explode(',', getenv('ALLOWED_ORIGINS') ?: 'https://dc-classroom-frontend.vercel.app,http://localhost:5173,http://127.0.0.1:5173')));
 $requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
 if ($requestOrigin && in_array($requestOrigin, $allowedOrigins, true)) {
