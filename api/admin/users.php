@@ -22,7 +22,7 @@ try {
         $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, is_active) VALUES (?, ?, ?, ?, ?)");
         $hashed = password_hash($input['password'], PASSWORD_DEFAULT);
         $stmt->execute([$input['name'], $input['email'], $hashed, $input['role'] ?? 'user', $input['is_active'] ?? 1]);
-        echo json_encode(["status" => "success", "message" => "User created"]);
+        echo json_encode(["status" => "success", "message" => "User created", "user_id" => (int)$pdo->lastInsertId()]);
     } elseif ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $userId = (int)($input['id'] ?? 0);
