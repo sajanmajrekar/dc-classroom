@@ -32,12 +32,23 @@ CREATE TABLE IF NOT EXISTS `lectures` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `class_id` int(11) NOT NULL,
   `title` varchar(200) NOT NULL,
+  `subtitle` varchar(255) DEFAULT NULL,
   `content` text,
   `type` enum('text','youtube','drive','pdf','link') NOT NULL DEFAULT 'text',
   `resource_url` text,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`class_id`) REFERENCES `classes`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `lecture_resources` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `lecture_id` int(11) NOT NULL,
+  `label` varchar(150) DEFAULT NULL,
+  `resource_url` text NOT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`lecture_id`) REFERENCES `lectures`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `lecture_progress` (

@@ -32,5 +32,32 @@ $stmt = $pdo->prepare("SELECT l.*, CASE WHEN lp.lecture_id IS NULL THEN 0 ELSE 1
     WHERE l.class_id = ?
     ORDER BY l.created_at ASC, l.id ASC");
 $stmt->execute([$user_id, $class_id]);
-echo json_encode(["status" => "success", "data" => $stmt->fetchAll()]);
+$lectures = $stmt->fetchAll();
+
+if ($lectures) {
+    $lectureIds = array_map(function ($lecture) { return (int)$lecture['id']; }, $lectures);
+    $placeholders = implode(',', array_fill(0, count($lectureIds), '?'));
+    $resourceStmt = $pdo->prepare("SELECT id, lecture_id, label, resource_url FROM lecture_resources WHERE lecture_id IN ($placeholders) ORDER BY id ASC");
+    $resourceStmt->execute($lectureIds);
+
+    $resourcesByLecture = [];
+    foreach ($resourceStmt->fetchAll() as $resource) {
+        $resourcesByLecture[$resource['lecture_id']][] = $resource;
+    }
+
+    foreach ($lectures as &$lecture) {
+        $lecture['resources'] = $resourcesByLecture[$lecture['id']] ?? [];
+        if (!$lecture['resources'] && !empty($lecture['resource_url'])) {
+            $lecture['resources'][] = [
+                'id' => null,
+                'lecture_id' => $lecture['id'],
+                'label' => 'Lecture material',
+                'resource_url' => $lecture['resource_url']
+            ];
+        }
+    }
+    unset($lecture);
+}
+
+echo json_encode(["status" => "success", "data" => $lectures]);
 ?>
