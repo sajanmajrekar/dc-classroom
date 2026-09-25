@@ -37,8 +37,13 @@ $lectures = $stmt->fetchAll();
 if ($lectures) {
     $lectureIds = array_map(function ($lecture) { return (int)$lecture['id']; }, $lectures);
     $placeholders = implode(',', array_fill(0, count($lectureIds), '?'));
-    $resourceStmt = $pdo->prepare("SELECT id, lecture_id, label, resource_url FROM lecture_resources WHERE lecture_id IN ($placeholders) ORDER BY id ASC");
-    $resourceStmt->execute($lectureIds);
+    $resourceStmt = $pdo->prepare("SELECT lr.id, lr.lecture_id, lr.label, lr.resource_url,
+        CASE WHEN lrp.resource_id IS NULL THEN 0 ELSE 1 END AS is_completed
+        FROM lecture_resources lr
+        LEFT JOIN lecture_resource_progress lrp ON lrp.resource_id = lr.id AND lrp.user_id = ?
+        WHERE lr.lecture_id IN ($placeholders)
+        ORDER BY lr.id ASC");
+    $resourceStmt->execute(array_merge([$user_id], $lectureIds));
 
     $resourcesByLecture = [];
     foreach ($resourceStmt->fetchAll() as $resource) {
@@ -52,7 +57,8 @@ if ($lectures) {
                 'id' => null,
                 'lecture_id' => $lecture['id'],
                 'label' => 'Lecture material',
-                'resource_url' => $lecture['resource_url']
+                'resource_url' => $lecture['resource_url'],
+                'is_completed' => 0
             ];
         }
     }

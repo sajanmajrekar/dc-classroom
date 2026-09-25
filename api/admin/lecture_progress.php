@@ -15,9 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit();
 }
 
-$stmt = $pdo->query("SELECT lp.lecture_id, lp.user_id, lp.completed_at, u.name AS user_name, u.email AS user_email
-    FROM lecture_progress lp
-    JOIN users u ON u.id = lp.user_id
-    ORDER BY lp.completed_at DESC");
+$stmt = $pdo->query("SELECT lrp.resource_id, lr.lecture_id, lrp.user_id, lrp.completed_at,
+    lr.label AS resource_label, u.name AS user_name, u.email AS user_email
+    FROM lecture_resource_progress lrp
+    JOIN lecture_resources lr ON lr.id = lrp.resource_id
+    JOIN users u ON u.id = lrp.user_id
+    ORDER BY lrp.completed_at DESC");
 echo json_encode(["status" => "success", "data" => $stmt->fetchAll()]);
 ?>

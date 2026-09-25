@@ -22,17 +22,21 @@ if (!$userId) {
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
-$lectureId = (int)($input['lecture_id'] ?? 0);
+$resourceId = (int)($input['resource_id'] ?? 0);
 $completed = (bool)($input['completed'] ?? false);
-if (!$lectureId) {
+if (!$resourceId) {
     http_response_code(400);
-    echo json_encode(["status" => "error", "message" => "Lecture ID is required"]);
+    echo json_encode(["status" => "error", "message" => "Resource ID is required"]);
     exit();
 }
 
-// Only learners assigned to the lecture's class can update their own progress.
-$access = $pdo->prepare("SELECT 1 FROM lectures l JOIN user_classes uc ON uc.class_id = l.class_id WHERE l.id = ? AND uc.user_id = ?");
-$access->execute([$lectureId, $userId]);
+// Only learners assigned to the class can update progress for its resources.
+$access = $pdo->prepare("SELECT 1
+    FROM lecture_resources lr
+    JOIN lectures l ON l.id = lr.lecture_id
+    JOIN user_classes uc ON uc.class_id = l.class_id
+    WHERE lr.id = ? AND uc.user_id = ?");
+$access->execute([$resourceId, $userId]);
 if (!$access->fetch()) {
     http_response_code(403);
     echo json_encode(["status" => "error", "message" => "Forbidden"]);
@@ -40,11 +44,11 @@ if (!$access->fetch()) {
 }
 
 if ($completed) {
-    $stmt = $pdo->prepare("INSERT INTO lecture_progress (user_id, lecture_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE completed_at = CURRENT_TIMESTAMP");
-    $stmt->execute([$userId, $lectureId]);
+    $stmt = $pdo->prepare("INSERT INTO lecture_resource_progress (user_id, resource_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE completed_at = CURRENT_TIMESTAMP");
+    $stmt->execute([$userId, $resourceId]);
 } else {
-    $stmt = $pdo->prepare("DELETE FROM lecture_progress WHERE user_id = ? AND lecture_id = ?");
-    $stmt->execute([$userId, $lectureId]);
+    $stmt = $pdo->prepare("DELETE FROM lecture_resource_progress WHERE user_id = ? AND resource_id = ?");
+    $stmt->execute([$userId, $resourceId]);
 }
 
 echo json_encode(["status" => "success", "completed" => $completed]);

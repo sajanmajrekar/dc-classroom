@@ -14,13 +14,14 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 if ($method === 'GET') {
     $stmt = $pdo->query("SELECT uc.user_id, uc.class_id, u.name AS user_name, u.email AS user_email,
-        c.title AS class_title, COUNT(DISTINCT l.id) AS total_lectures,
-        COUNT(DISTINCT lp.lecture_id) AS completed_lectures
+        c.title AS class_title, COUNT(DISTINCT lr.id) AS total_lectures,
+        COUNT(DISTINCT lrp.resource_id) AS completed_lectures
         FROM user_classes uc
         JOIN users u ON u.id = uc.user_id
         JOIN classes c ON c.id = uc.class_id
         LEFT JOIN lectures l ON l.class_id = c.id
-        LEFT JOIN lecture_progress lp ON lp.lecture_id = l.id AND lp.user_id = u.id
+        LEFT JOIN lecture_resources lr ON lr.lecture_id = l.id
+        LEFT JOIN lecture_resource_progress lrp ON lrp.resource_id = lr.id AND lrp.user_id = u.id
         GROUP BY uc.user_id, uc.class_id, u.name, u.email, c.title
         ORDER BY c.title ASC, u.name ASC");
     echo json_encode(["status" => "success", "data" => $stmt->fetchAll()]);

@@ -51,6 +51,15 @@ CREATE TABLE IF NOT EXISTS `lecture_resources` (
   FOREIGN KEY (`lecture_id`) REFERENCES `lectures`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `lecture_resource_progress` (
+  `user_id` int(11) NOT NULL,
+  `resource_id` int(11) NOT NULL,
+  `completed_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`, `resource_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`resource_id`) REFERENCES `lecture_resources`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `lecture_progress` (
   `user_id` int(11) NOT NULL,
   `lecture_id` int(11) NOT NULL,
