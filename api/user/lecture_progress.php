@@ -30,6 +30,13 @@ if (!$resourceId) {
     exit();
 }
 
+$progressTable = $pdo->query("SHOW TABLES LIKE 'lecture_resource_progress'")->fetch();
+if (!$progressTable) {
+    http_response_code(409);
+    echo json_encode(["status" => "error", "message" => "Resource progress is not configured yet. Please contact the administrator."]);
+    exit();
+}
+
 // Only learners assigned to the class can update progress for its resources.
 $access = $pdo->prepare("SELECT 1
     FROM lecture_resources lr

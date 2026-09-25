@@ -36,18 +36,31 @@ $lectures = $stmt->fetchAll();
 
 if ($lectures) {
     $lectureIds = array_map(function ($lecture) { return (int)$lecture['id']; }, $lectures);
-    $placeholders = implode(',', array_fill(0, count($lectureIds), '?'));
-    $resourceStmt = $pdo->prepare("SELECT lr.id, lr.lecture_id, lr.label, lr.resource_url,
-        CASE WHEN lrp.resource_id IS NULL THEN 0 ELSE 1 END AS is_completed
-        FROM lecture_resources lr
-        LEFT JOIN lecture_resource_progress lrp ON lrp.resource_id = lr.id AND lrp.user_id = ?
-        WHERE lr.lecture_id IN ($placeholders)
-        ORDER BY lr.id ASC");
-    $resourceStmt->execute(array_merge([$user_id], $lectureIds));
-
     $resourcesByLecture = [];
-    foreach ($resourceStmt->fetchAll() as $resource) {
-        $resourcesByLecture[$resource['lecture_id']][] = $resource;
+    $resourcesTable = $pdo->query("SHOW TABLES LIKE 'lecture_resources'")->fetch();
+    $resourceProgressTable = $pdo->query("SHOW TABLES LIKE 'lecture_resource_progress'")->fetch();
+
+    if ($resourcesTable) {
+        $placeholders = implode(',', array_fill(0, count($lectureIds), '?'));
+        if ($resourceProgressTable) {
+            $resourceStmt = $pdo->prepare("SELECT lr.id, lr.lecture_id, lr.label, lr.resource_url,
+                CASE WHEN lrp.resource_id IS NULL THEN 0 ELSE 1 END AS is_completed
+                FROM lecture_resources lr
+                LEFT JOIN lecture_resource_progress lrp ON lrp.resource_id = lr.id AND lrp.user_id = ?
+                WHERE lr.lecture_id IN ($placeholders)
+                ORDER BY lr.id ASC");
+            $resourceStmt->execute(array_merge([$user_id], $lectureIds));
+        } else {
+            $resourceStmt = $pdo->prepare("SELECT lr.id, lr.lecture_id, lr.label, lr.resource_url, 0 AS is_completed
+                FROM lecture_resources lr
+                WHERE lr.lecture_id IN ($placeholders)
+                ORDER BY lr.id ASC");
+            $resourceStmt->execute($lectureIds);
+        }
+
+        foreach ($resourceStmt->fetchAll() as $resource) {
+            $resourcesByLecture[$resource['lecture_id']][] = $resource;
+        }
     }
 
     foreach ($lectures as &$lecture) {
