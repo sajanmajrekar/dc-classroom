@@ -1,6 +1,7 @@
 <?php
 require_once '../cors.php';
 require_once '../config.php';
+require_once '../mail.php';
 
 $headers = getallheaders();
 if (empty($headers['Authorization'])) {
@@ -26,9 +27,40 @@ if ($method === 'GET') {
         ORDER BY c.title ASC, u.name ASC");
     echo json_encode(["status" => "success", "data" => $stmt->fetchAll()]);
 } elseif ($method === 'POST') {
+    $userId = (int)($input['user_id'] ?? 0);
+    $classId = (int)($input['class_id'] ?? 0);
+    if (!$userId || !$classId) {
+        http_response_code(422);
+        echo json_encode(["status" => "error", "message" => "A user and class are required"]);
+        exit();
+    }
+
     $stmt = $pdo->prepare("INSERT IGNORE INTO user_classes (user_id, class_id) VALUES (?, ?)");
-    $stmt->execute([$input['user_id'], $input['class_id']]);
-    echo json_encode(["status" => "success", "message" => "Class assigned successfully"]);
+    $stmt->execute([$userId, $classId]);
+    $newAssignment = $stmt->rowCount() > 0;
+    $mailSent = false;
+
+    if ($newAssignment) {
+        $details = $pdo->prepare("SELECT u.name, u.email, c.title AS class_title
+            FROM users u CROSS JOIN classes c WHERE u.id = ? AND c.id = ?");
+        $details->execute([$userId, $classId]);
+        $assignment = $details->fetch();
+
+        if ($assignment) {
+            $mailSent = academySendMail(
+                $assignment['email'],
+                'New class assigned: ' . $assignment['class_title'],
+                academyClassAssignmentEmail($assignment['name'], $assignment['class_title'])
+            );
+        }
+    }
+
+    echo json_encode([
+        "status" => "success",
+        "message" => $newAssignment ? "Class assigned successfully" : "Class was already assigned",
+        "new_assignment" => $newAssignment,
+        "mail_sent" => $mailSent,
+    ]);
 } elseif ($method === 'DELETE') {
     $stmt = $pdo->prepare("DELETE FROM user_classes WHERE user_id = ? AND class_id = ?");
     $stmt->execute([$input['user_id'], $input['class_id']]);

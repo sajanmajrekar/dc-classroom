@@ -1,6 +1,7 @@
 <?php
 require_once '../cors.php';
 require_once '../config.php';
+require_once '../mail.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -19,10 +20,25 @@ try {
         echo json_encode(["status" => "success", "data" => $stmt->fetchAll()]);
     } elseif ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
+        $name = trim($input['name'] ?? '');
+        $email = trim($input['email'] ?? '');
+        $password = (string)($input['password'] ?? '');
+
+        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '') {
+            throw new Exception('Name, a valid email address, and password are required');
+        }
+
         $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, is_active) VALUES (?, ?, ?, ?, ?)");
-        $hashed = password_hash($input['password'], PASSWORD_DEFAULT);
-        $stmt->execute([$input['name'], $input['email'], $hashed, $input['role'] ?? 'user', $input['is_active'] ?? 1]);
-        echo json_encode(["status" => "success", "message" => "User created", "user_id" => (int)$pdo->lastInsertId()]);
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+        $stmt->execute([$name, $email, $hashed, $input['role'] ?? 'user', $input['is_active'] ?? 1]);
+
+        $mailSent = academySendMail($email, 'Your DigiChefs Academy login details', academyLoginEmail($name, $email, $password));
+        echo json_encode([
+            "status" => "success",
+            "message" => "User created",
+            "user_id" => (int)$pdo->lastInsertId(),
+            "mail_sent" => $mailSent,
+        ]);
     } elseif ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $userId = (int)($input['id'] ?? 0);
