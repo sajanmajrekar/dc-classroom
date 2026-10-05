@@ -40,7 +40,16 @@ function academySendMail($to, $subject, $body)
         curl_close($curl);
 
         if ($response === false || $statusCode < 200 || $statusCode >= 300) {
-            error_log('Academy mail not sent: HTTP ' . $statusCode . ($error ? ' (' . $error . ')' : ''));
+            $responsePreview = is_string($response) ? trim(substr($response, 0, 500)) : '';
+            error_log('Academy mail not sent: HTTP ' . $statusCode
+                . ($error ? ' (' . $error . ')' : '')
+                . ($responsePreview ? ' Response: ' . $responsePreview : ''));
+            return false;
+        }
+
+        $decodedResponse = json_decode($response, true);
+        if (is_array($decodedResponse) && isset($decodedResponse['error'])) {
+            error_log('Academy mail not sent: API error: ' . $decodedResponse['error']);
             return false;
         }
 
@@ -58,7 +67,13 @@ function academySendMail($to, $subject, $body)
     $statusLine = $http_response_header[0] ?? '';
 
     if ($response === false || !preg_match('/\\s2\\d\\d\\s/', $statusLine)) {
-        error_log('Academy mail not sent: HTTP request failed.');
+        error_log('Academy mail not sent: HTTP request failed. ' . trim($statusLine));
+        return false;
+    }
+
+    $decodedResponse = json_decode($response, true);
+    if (is_array($decodedResponse) && isset($decodedResponse['error'])) {
+        error_log('Academy mail not sent: API error: ' . $decodedResponse['error']);
         return false;
     }
 
