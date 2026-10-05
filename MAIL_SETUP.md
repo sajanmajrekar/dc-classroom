@@ -2,7 +2,7 @@
 
 The API sends mail through the DigiChefs mail endpoint described in `Mail Api.pdf`.
 
-- Default endpoint: `https://digichefs.in/sajan/send-mail.php`
+- Default endpoint: `https://digichefs.in/sajan/mail.php`
 - Request format: JSON `POST` with `to`, `subject`, and HTML `body`.
 - Optional server environment variable: `MAIL_API_URL`, if the mail endpoint changes.
 

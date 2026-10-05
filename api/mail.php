@@ -6,7 +6,7 @@
  */
 function academySendMail($to, $subject, $body)
 {
-    $endpoint = getenv('MAIL_API_URL') ?: 'https://digichefs.in/sajan/send-mail.php';
+    $endpoint = getenv('MAIL_API_URL') ?: 'https://digichefs.in/sajan/mail.php';
 
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
         error_log('Academy mail not sent: invalid recipient address.');
