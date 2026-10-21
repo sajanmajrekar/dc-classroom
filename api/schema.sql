@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS `user_classes` (
 CREATE TABLE IF NOT EXISTS `lectures` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `class_id` int(11) NOT NULL,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
   `title` varchar(200) NOT NULL,
   `subtitle` varchar(255) DEFAULT NULL,
   `content` text,

@@ -26,11 +26,13 @@ if (!$stmt->fetch()) {
     exit();
 }
 
+$sortOrderSupported = (bool)$pdo->query("SHOW COLUMNS FROM lectures LIKE 'sort_order'")->fetch();
+$orderBy = $sortOrderSupported ? 'l.sort_order ASC, l.id ASC' : 'l.created_at ASC, l.id ASC';
 $stmt = $pdo->prepare("SELECT l.*, CASE WHEN lp.lecture_id IS NULL THEN 0 ELSE 1 END AS is_completed
     FROM lectures l
     LEFT JOIN lecture_progress lp ON lp.lecture_id = l.id AND lp.user_id = ?
     WHERE l.class_id = ?
-    ORDER BY l.created_at ASC, l.id ASC");
+    ORDER BY $orderBy");
 $stmt->execute([$user_id, $class_id]);
 $lectures = $stmt->fetchAll();
 
