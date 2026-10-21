@@ -6,11 +6,15 @@ $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 function supportsLectureSortOrder($pdo) {
-    static $supported = null;
-    if ($supported === null) {
-        $supported = (bool)$pdo->query("SHOW COLUMNS FROM lectures LIKE 'sort_order'")->fetch();
-    }
-    return $supported;
+    return (bool)$pdo->query("SHOW COLUMNS FROM lectures LIKE 'sort_order'")->fetch();
+}
+
+function ensureLectureSortOrder($pdo) {
+    if (supportsLectureSortOrder($pdo)) return;
+
+    // Upgrade older deployments automatically when an admin first reorders lectures.
+    $pdo->exec("ALTER TABLE lectures ADD COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER class_id");
+    $pdo->exec("UPDATE lectures SET sort_order = id WHERE sort_order = 0");
 }
 
 function normalizeResources($resources, $legacyUrl = '') {
@@ -83,11 +87,7 @@ try {
         }
         echo json_encode(["status" => "success", "data" => addResourcesToLectures($pdo, $stmt->fetchAll())]);
     } elseif ($method === 'PUT' && ($input['action'] ?? '') === 'reorder') {
-        if (!supportsLectureSortOrder($pdo)) {
-            http_response_code(409);
-            echo json_encode(["status" => "error", "message" => "Run migration 005_add_lecture_sort_order.sql before reordering lectures"]);
-            exit();
-        }
+        ensureLectureSortOrder($pdo);
 
         $classId = (int)($input['class_id'] ?? 0);
         $lectureIds = array_values(array_filter($input['lecture_ids'] ?? [], 'is_numeric'));
